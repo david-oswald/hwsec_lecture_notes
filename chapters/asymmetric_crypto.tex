@@ -72,7 +72,7 @@ Assume our \ac{CPU} works (for some obscure reason) with $w = 5$~bit registers. 
 $$
 u = \left(01011\ 11000\ 11000\ 01010\ 01110\right)_{2^5} = (a_4,\,a_3,\,a_2,\,a_1,\,a_0)_{2^5}
 $$
-Note that we had to add a zero bit in the most-significant (rightmost) word so that the numbers fits into a multiple of the register width $w$. 
+Note that we had to add a zero bit in the most-significant (leftmost) word so that the numbers fits into a multiple of the register width $w$. 
 
 The central problem of long-number arithmetic is now to express the standard operators (addition, subtraction, multiplication, modulo, division, ...) in terms of the above representation. For processors, the base is always a power of two (i.e., $b = 2^w$), but we occasionally may also use $b = 10$ for explanations (since this is the base most humans are used to).
 
@@ -117,7 +117,7 @@ Before we formalize this algorithm, we make a few short observations. First, not
 
 A couple of remarks: In Algorithm~\ref{alg:asymmetric_crypto:ln_add}, the modulo and division operation do not correspond to real arithmetic instructions. Instead, $t \mod b$ means ``take the lower limb of the result $t$'', and $\left\lfloor \frac{t}{b} \right\rfloor$ ``take the upper limb of the result $t$''. These operations are hence easy to do for a processor (bit shifting and masking), and (incidentally) also for humans (read part of a number).
 
-Note that $t$ has to be a double-precision (two limbs) number for the algorithm to work, which is a slight overhead (since $c$ either 0 or 1). Many \ac{CPU} architectures hence provide an ``add-with-carry'' (\verb+ADDC+) instruction, which takes the input carry, performs the addition, and gives the output carry. However, there is no (portable) way to use add-with-carry in higher-level languages like \verb+C+ or \verb+Java+. 
+Note that $t$ has to be a double-precision (two limbs) number for the algorithm to work, which is a slight overhead (because $c$ is either 0 or 1). Many \ac{CPU} architectures hence provide an ``add-with-carry'' (\verb+ADDC+) instruction, which takes the input carry, performs the addition, and gives the output carry. However, there is no (portable) way to use add-with-carry in higher-level languages like \verb+C+ or \verb+Java+. 
 A workaround is to use Boolean operators to compute the carry without leaving single precision (single-limb computations). This can be achieved as follows (using the example of a 16-bit processor)~\cite{SOInt}:
 
 \lstset{language=C}

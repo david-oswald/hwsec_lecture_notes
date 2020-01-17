@@ -1,0 +1,379 @@
+%#####################################################################
+%                           Chapter
+%#####################################################################
+
+%#####################################################################
+\chapter{Implementation of Asymmetric (Public Key) Cryptography}
+\thispagestyle{fancy}
+
+\label{chap:asymmetric_crypto}
+%#####################################################################
+In contrast to symmetric cryptography, asymmetric (i.e., public key) cryptosystems have significantly higher computational and storage requirements (normally due to the longer keys, which range from 1024--8192\,bit for \ac{RSA} or 160--512\,bit for \ac{ECC}). For \acp{PC}, this performance penalty is usually negligible, unless large amounts of data are to be encrypted asymmetrically. For embedded systems, however, implementing asymmetric cryptography efficiently is a current area of research. Most approaches favor \ac{ECC} (mainly due to shorter key length), therefore we give an outlook on this area in Section~\ref{sec:asymmetric_crypto:ecc}. However, due to its conceptional simplicity, we will focus on \ac{RSA} in this chapter, even though it is not overly suited for constrained embedded devices. Still, the basic building blocks (long-number arithmetic) are identical to more suitable approaches like \ac{ECC}, hence, many optimizations directly carry over to such algorithms. A good reference for long-number algorithms is~\cite{menezes96handbook}.
+
+\section{The \ac{RSA} System}
+\ac{RSA} is a well known algorithm. In this section, we only briefly repeat the main steps and introduce some notation. Note that the use of \ac{RSA} in real applications has many additional requirements (padding scheme, key generation, etc.) to be secure. 
+
+\textbf{Hence, the definitions/algorithms given here are to be understood as educational and must not be implemented straight away in a real system!}
+
+\begin{definition}
+For $\ell$-bit \ac{RSA}, pick two secret primes $p,\,q$, each about $\nicefrac{\ell}{2}$ in size. Let $n = p \cdot q$. Furthermore, pick a public exponent $e$. 
+The \ac{RSA} public key is the tuple  $\left(n,\,e\right)$
+The corresponding \ac{RSA} private key is the tuple $\left(p,\,q,\,d\right)$ with $d = e^{-1} \mod \phi \left(n\right)$. 
+\end{definition}
+
+\begin{definition}
+ \label{def:rsa_enc}
+\ac{RSA} encryption of plaintext $x$ under a public key  $\left(n,\,e\right)$ is given as: \\
+$
+y = x^e \mod n
+$.
+
+\noindent Similarly, \ac{RSA} signature verification of a signature $s$ is:
+$
+x = s^e \mod n
+$.
+\end{definition}
+
+\begin{definition}
+  \label{def:rsa_dec}
+\ac{RSA} decryption of a ciphertext $y$ with a private key $\left(p,\,q,\,d\right)$ is given as: \\
+$
+x = y^d \mod n
+$.
+
+\noindent Similarly, an \ac{RSA} signature on a plaintext $x$ is computed as:
+$
+s = x^d \mod n
+$.
+
+\end{definition}
+
+\section{Long-Number Arithmetic}
+Asymmetric algorithms like \ac{RSA} and \ac{ECC} require computations with numbers beyond the width $w$ of a single \ac{CPU} register. Thus, we have to deal with \emph{long-number} or \emph{multi-precision arithmetic}. For \ac{PC}-like platforms, there exist very comprehensive libraries to implement computations with long numbers (e.g., \verb+GMP+ or within \verb+OpenSSL+). Hence, the need to implement such algorithms ``from scratch'' is not given; and for security and efficiency reasons it is not recommended to create own implementations.
+
+However, for embedded applications, libraries developed for \ac{PC} platforms may be oversized, contain many features not required in a particular case, or be inefficient due to assumptions that only hold for a \ac{PC} architecture. On the other hand, it has educational value to study what happens ``under the hood'' of a long-number arithmetic library. Therefore, we will study a few building blocks of long-number arithmetic in the following subsections.
+
+\subsection{Number Representation}
+As mentioned, we assume a processor with $w$-bit registers. Given an $\ell$-bit number $u$, we store this number in 
+$$
+k = \left\lceil \frac{\ell}{w}\right\rceil
+$$
+registers. In other words, we represent the number $u$ to the base $b = 2^w$:
+\begin{eqnarray}
+u &=& u_0 \cdot b^0 + u_1 \cdot b^1 + u_2 \cdot b^2 + \ldots + u_{k-1} \cdot b^{k-1}  \nonumber \\
+  &=& u_0 \cdot 2^0 + u_1 \cdot 2^w + u_2 \cdot 2^{2w} + \ldots + u_{k-1} \cdot 2^{\left(k-1\right)\cdot w} \nonumber
+\end{eqnarray}
+where $u_0,\,u_1,\,\ldots,\,u_{m-1}$ are $w$-bit words often also called \emph{limbs}. Note that each limb fits into a single $w$-bit register and can hence be handled by the \ac{CPU}.
+Let us take the number $a = \left(12345678\right)_{10}$ as an example. In binary, this $\ell = 24$~bit number\footnote{The length of a number in bit can always be computed as $\ell = \left\lceil \log_2{u} \right\rceil$.} is given as:
+$$
+u = \left(101111000110000101001110\right)_2
+$$
+Assume our \ac{CPU} works (for some obscure reason) with $w = 5$~bit registers. Then,  we would divide $u$ into $k = \left\lceil \frac{24}{5}\right\rceil = 5$ limbs of 5~bit each:
+$$
+u = \left(01011\ 11000\ 11000\ 01010\ 01110\right)_{2^5} = (a_4,\,a_3,\,a_2,\,a_1,\,a_0)_{2^5}
+$$
+Note that we had to add a zero bit in the most-significant (rightmost) word so that the numbers fits into a multiple of the register width $w$. 
+
+The central problem of long-number arithmetic is now to express the standard operators (addition, subtraction, multiplication, modulo, division, ...) in terms of the above representation. For processors, the base is always a power of two (i.e., $b = 2^w$), but we occasionally may also use $b = 10$ for explanations (since this is the base most humans are used to).
+
+We will mostly look at the most straightforward (``schoolbook'') algorithm, but in some cases also consider optimized methods. Please note that in the following, we will denote the length of a number $u$ \emph{in base $b$} as $k$, i.e., $k = \log_b u$.
+
+\subsection{Addition}
+For long-number addition, recall ``addition with carry'' used for computing larger sums manually for base $b = 10$. An example is shown in the following table:
+
+\begin{table}[htbp]
+	\centering
+		\begin{tabular}{c | c c c c c c c}
+			$u_i$       & & 9 & 6 & 3 & 4 & 5 & 6 \\
+			$ +\ v_i$  & & 9 & 4 & 8 & 0 & 2 & 4 \\\hline
+			carry $c_i$     & \footnotesize{1} & \footnotesize{1}  & \footnotesize{1} &  \footnotesize{0}  & \footnotesize{0}   & \footnotesize{1}  &   \\
+			sum  $r_i$    & 1 & 9 &  1 &  1  & 4 & 8  & 0       
+		\end{tabular}
+	\caption{Example: schoolbook addition with carry}
+	\label{tab:asymmetric_crypto:addb10}
+\end{table}
+
+Before we formalize this algorithm, we make a few short observations. First, note that in the first limb/digit addition $u_0 + v_0$, since $u_i,\,v_i$ can take the maximum value $b - 1$ each, the largest possible result is $2b-2$. Hence, the carry $c$ (note that $c$ does \emph{not} mean ciphertext in this section) can at most take the value $1$ (since the result is always $< 2b$). In the following limb additions $u_i + v_i + c_i$, the maximum result is $2b-1$, i.e., still always $< 2b$. Finally, note that the sum of two $k$-digit numbers can be at most $k+1$ digits long (if there is a carry from the most-significant limb addition $u_{\ell-1} + v_{\ell-1} + c_{k-1}$).
+
+\begin{algorithm}
+\center
+\begin{algorithmic}
+\vspace{2mm}
+\State $c \gets 0$ 
+
+\For{i = 0 ... $k-1$}
+	\State $t \gets u_i + v_i + c$
+	\State $r_i \gets t \mod b$
+	\State $c \gets \left\lfloor \frac{t}{b} \right\rfloor$
+\EndFor
+
+\State $r_{k} \gets c$
+
+\vspace{2mm}
+\end{algorithmic}
+\caption{Long-number addition of two $k$-limb numbers $u$, $v$}
+\label{alg:asymmetric_crypto:ln_add}
+\end{algorithm}
+
+A couple of remarks: In Algorithm~\ref{alg:asymmetric_crypto:ln_add}, the modulo and division operation do not correspond to real arithmetic instructions. Instead, $t \mod b$ means ``take the lower limb of the result $t$'', and $\left\lfloor \frac{t}{b} \right\rfloor$ ``take the upper limb of the result $t$''. These operations are hence easy to do for a processor (bit shifting and masking), and (incidentally) also for humans (read part of a number).
+
+Note that $t$ has to be a double-precision (two limbs) number for the algorithm to work, which is a slight overhead (since $c$ either 0 or 1). Many \ac{CPU} architectures hence provide an ``add-with-carry'' (\verb+ADDC+) instruction, which takes the input carry, performs the addition, and gives the output carry. However, there is no (portable) way to use add-with-carry in higher-level languages like \verb+C+ or \verb+Java+. 
+A workaround is to use Boolean operators to compute the carry without leaving single precision (single-limb computations). This can be achieved as follows (using the example of a 16-bit processor)~\cite{SOInt}:
+
+\lstset{language=C}
+\begin{lstlisting}
+uint16_t r = u + v;
+uint16_t carry = 
+   (((u & v) | (u & ~v & ~r) | (~u & v & ~r)) >> 15) & 0x1;
+\end{lstlisting}
+
+This code works since it sets the carry if (a) the topmost bit of both operands is set or (b) the topmost bit in the result and one operand is not set, but set in the remaining operand.
+
+Further note that an alternative algorithm could be written with \verb+if+-conditions: \verb+if+ $t \geq b: c \gets 1$ \verb+else+ $c \gets 0$. However, this would result in the execution time of the addition being dependent on the inputs, which is not desirable for a variety of reasons (some explained in Chapter~\ref{chap:impl_attacks}).
+
+Finally, subtraction can be done in a similar manner (carry becomes ``borrow'' bit), or by working in a two's complement representation (a negative sign is expressed by negating each bit and adding $1$). 
+
+\paragraph{Complexity} Addition requires $k$ base-$b$ additions-with-carry, or $2k$ such additions if no \verb+ADDC+ is available. Its complexity is hence linear in $k$, i.e., $\bigo \left(k\right)$. It is hence generally computationally cheap, e.g., for adding two 2048-bit numbers on a 16-bit \ac{CPU}, 128 limb-additions (with carry) are needed.
+
+\subsection{Multiplication}
+\label{sec:asymmetric_crypto:mul}
+Similar to addition, we will devise an algorithm for long-number multiplication based on the method commonly taught in school. Before that, note that the product of a $k$-limb number and a $m$-limb number has length at most $k + m$ since 
+$$\left(b^k -1 \right) \cdot \left(b^m - 1\right) = b^{k + m} - b^k - b^m + 1 < b^{k+m}$$
+
+Let us now compute the product of $u = 134$ and $v = 56$:
+
+\begin{table}[htbp]
+	\centering
+		\begin{tabular}{c c c c c c}
+			1 & 3 & 4 & $\times$ & 5 & 6  \\\hline
+			  &    &     &                &  2 & 4 \\
+			  &  + & &             1 & 8  & (0)   \\
+			  & +  &  &            6  &  (0  &  0)  \\
+			  &    &    &            \footnotesize{1}  &   &    \\ \hline
+                        & =  &  &            8   &   0  &   4    \\ 
+			  & + &    &             2  &   0  &  (0)    \\
+			  & + & 1 &             5  &   (0  & 0)       \\
+			  & +  & 5 &             (0   &   0 &   0)   \\ 
+			  &    &  \footnotesize{1}  &      &   &    \\ \hline
+			  & =  & 7 &            5   &   0  &   4    \\ 
+		\end{tabular}
+	\caption{Example: schoolbook multiplication}
+	\label{tab:asymmetric_crypto:mulb10}
+\end{table}
+
+In principle, we have to multiply each digit of the second operand with each digit of the first operand and add up the results (with appropriate shifts by multiple of the base). The multiplication algorithm to compute $r = u \cdot v$ on a base-$b$ processor is formalized in Algorithm~\ref{alg:asymmetric_crypto:ln_mul}.
+
+%. For i from 0 to t do the following:
+%2.1 c←0.
+%2.2 For j from 0 to n do the following:
+%Compute (uv)b = wi+j + xj · yi + c, and set wi+j←v, c←u.
+%2.3 wi+n+1←u.
+
+\begin{algorithm}
+\center
+\begin{algorithmic}
+\vspace{2mm}
+
+\For{$i = 0 \ldots k + m -1$}
+	\State $r_i \gets 0$
+\EndFor
+\vspace{1mm}
+\For{$i = 0 \ldots m - 1$}
+	\State $c \gets 0$
+	\vspace{.5mm} 
+	\For{$j = 0 \ldots k - 1$}
+            \State $\left(y,\,x\right)_b \gets r_{i+j} + u_j\cdot v_i + c $
+            \State $r_{i+j} \gets x$
+            \State $c \gets y$
+        \EndFor
+        \vspace{.5mm}
+        \State $r_{i + k} \gets c$
+        \vspace{1mm}
+\EndFor
+
+\vspace{2mm}
+\end{algorithmic}
+\caption{Long-number multiplication of a $k$-limb numbers $u$ with an $m$-limb number $v$}
+\label{alg:asymmetric_crypto:ln_mul}
+\end{algorithm}
+
+$\left(y,\,x\right)_b$ is a ``double limb'' (base-$b^2$ digit), i.e., if a limb was represented with \verb+uint16_t+, $\left(y,\,x\right)_b$ would be \verb+uint32_t+.
+Note that  $\left(y,\,x\right)_b$ has always of at most two base-$b$ digits, since the maximum value is:
+
+$$
+\left(b-1\right) \cdot \left(b-1\right) + \left(b-1\right) + \left(b-1\right) = b^2 - 2b + 1 + 2b - 2 = b^2 - 1 < b^2
+$$
+
+\paragraph{Complexity}
+Algorithm~\ref{alg:asymmetric_crypto:ln_mul} is a one-to-one realization of the ``schoolbook'' method, whereas the base-$b$ shifts are implicit in the indices. It requires $k + m$ base-$b$ multiplications, and $2\left(b+m\right)$ base-$b^2$ additions. If $k = m$, the complexity is hence quadratic in $k$, i.e., $\bigo{\left(k^2\right)}$. In the following we assume $k = m$ and examine if quadratic complexity is a lower bound for the complexity of multiplication (as it was assumed for a long time) or if we can improve the runtime.
+
+\subsection{Karatsuba Multiplication}
+For a long time, it was believed that $\bigo{\left(k^2\right)}$ is the best possible runtime for multiplication. However, in 1960, the Russian mathematician Anatoly Karatsuba proposed a method with lower runtime~\cite{karatsubaMul}. The algorithm is based on a simple divide-and-conquer approach, but was surprisingly discovered relatively recently (compared to other algorithms, which are sometimes known for centuries). After the discovery of the Karatsuba method, other, asymptotically even faster multiplication methods were found, e.g., the Toom-Cook and Schönhage-Strassen algorithms. However, these methods are usually only advantageous for bit lengths far beyond those used for asymmetric cryptography.
+
+Karatsuba's algorithm is based on a simple observation. Split two $k$-digit numbers $u$, $v$ into halves of equal size $\kappa = \left\lceil \frac{k}{2} \right\rceil$, i.e., write them as:
+
+\begin{align}
+	u &= u_H \cdot b^\kappa + u_L \nonumber \\ 
+	v &= v_H \cdot b^\kappa + v_L \nonumber 
+\end{align}
+
+where $u_H$ is the upper half $u_H = \left(u_{k-1} \ldots u_\kappa\right)$ and $u_L$ the lower $u_K = \left(u_{\kappa-1} \ldots u_0\right)$ (similar for $v$).
+Now, writing the product $u \cdot v$ we get:
+
+$$
+ \left(u_H \cdot b^\kappa + u_L\right) \cdot \left(v_H \cdot b^\kappa + v_L\right) = u_H v_H b^{2 \kappa} + \left( u_H v_L + u_L v_H\right) b^\kappa + u_L v_L
+$$
+
+For computing the product in this way, we still need four half-length multiplications, which is the same as one full-length multiplication. However, Karatsuba's crucial observation was that the middle part $\left( u_H v_L + u_L v_H\right)$ can be expressed as:
+
+$$
+\left(u_H + u_L\right) \cdot \left(v_L + v_H\right) - u_H v_H - u_L v_L = u_H v_L + u_L v_H
+$$
+
+Since we already have to compute $u_H v_H$ and $u_L v_L$, we hence save \emph{one} multiplication at the cost of two additions and two subtractions! In general form, the method is expressed with:
+\begin{align}
+	D_0 &= u_L \cdot v_L \nonumber \\ 
+	D_2 &= u_H \cdot v_H \nonumber \\ 
+	D_1 &= \left(u_H + u_L\right) \cdot \left(v_L + v_H\right) \nonumber
+\end{align}
+
+and hence:
+$$
+u \cdot v = D_2 b^{2\kappa} + \left[D_1 - D_2 - D_0\right] b^\kappa + D_0
+$$
+
+\paragraph{Example}
+Let us see this with the example $1234 \cdot 4321$ in $b = 10$: Since $k = 4$, $\kappa = 2$. We thus have 
+$$
+u_H = 12,\, u_L = 34,\,v_H = 43,\, v_L = 21
+$$
+
+and, computing the three products $D_0,\, D_1,\,D_2$:
+\begin{align}
+	D_0 &= 34 \cdot 21 = 714 \nonumber \\ 
+	D_2 &= 12 \cdot 43 = 516 \nonumber \\ 
+	D_1 &= \left(12 + 34\right) \cdot \left(43 + 21\right) = 46 \cdot 64 = 2944 \nonumber
+\end{align}
+
+Thus, $u \cdot v = 516\cdot 10^4 + \left[2944 - 714 - 516\right] 10^2 + 714 = 5160000 + 171400 + 714 = 5332114$.
+
+\paragraph{Recursion}
+Note that the Karatsuba method can (and should) be applied \emph{recursively}, i.e., to compute all the sub-products $D_0,\, D_1,\,D_2$ again by applying the method, and so on. In theory, the algorithm is applied until we only reach base-$b$ operands. In the above example, we would have 1~recursion (2~iterations), after which we reach single-digit products. E.g., to compute the sub-product $34 \cdot 21$, we have (leaving out indices for simpler notation):
+\begin{align}
+	D_0 &= 4 \cdot 1 = 4 \nonumber \\ 
+	D_2 &= 3 \cdot 2 = 6 \nonumber \\ 
+	D_1 &= \left(4 + 3\right) \cdot \left(2 + 1\right) = 21 \nonumber
+\end{align}
+
+and thus $34 \cdot 21 = 6\cdot 10^2 + \left[21 - 4 - 6\right] 10 + 4 = 600 + 110 + 4 = 714$.
+
+In practice, however, the algorithm is usually only applied until an (experimentally determined) threshold is reached. Afterwards, the schoolbook algorithm is applied. The rationale for this is that at some point the additional additions and management operations become more expensive than the advantage of saving one multiplication.
+
+\paragraph{Complexity}
+We start with the case of one iteration ($i = 1$, no recursion). In this case, to compute a product of two $k$-digit numbers, we need three half-length multiplications, i.e., have complexity (ignoring additions):
+$$3 \left(\frac{k}{2}\right)^2 = \frac{3}{4}\, k^2$$
+
+Applying the method again recursively (iteration $i = 2$) to compute $D_0,\, D_1,\,D_2$, we hence have three products of $\frac{k}{2}$-digit numbers to compute. This has then complexity:
+$$3 \left(\frac{3}{4}\, \left(\frac{k}{2}\right)^2\right) = \frac{9}{16}\,k^2$$
+
+The general complexity for Karatsuba with $i$ iterations is hence 
+$$
+\bigo{\left( \left(\frac{3}{4}\right)^i\,k^2\right)}
+$$
+
+Assume we multiply multiply two numbers with length $k = 2^i$ (i.e.~need $i$ iterations). Then, we can refactor this expression as follows:
+
+\begin{align}
+\left(\frac{3}{4}\right)^i\,k^2 &= 3^i \left(\frac{1}{2^2}\right)^i \left(2^i\right)^2  = 3^i \frac{2^{2i}}{2^{2i}} = 3^i \nonumber\\
+&= 3^{\log_2 k} = \left(2^{\log_2 3} \right)^{\log_2 k} = \left(2^{\log_2 k} \right)^{\log_2 3} \nonumber \\
+&= k^{\log_2 3} \approx k^{1.585} \nonumber
+\end{align}
+
+$\bigo{\left(k^{1.585}\right)}$ is the (quite famous) complexity estimation for Karatsuba. Note that the exponent $\log_2 3$ indicates the number of half-length multiplications in the recursion step. If we would not apply the Karatsuba ``trick'', we would have $\log_2 4$, which brings us back to the original complexity $\bigo{\left(k^{2}\right)}$ of the schoolbook method.
+
+
+\subsection{Modulo Arithmetic} 
+Modulo arithmetic, i.e.~computing the remainder $u \mod n$ for large $u$, $n$, is a problem related to long-number division: given the quotient $\gamma = \left\lfloor \frac{u}{n} \right\rfloor$, the remainder $r = u \mod n$ is given as $r = n - \gamma \cdot u$.
+
+However, long-number division (see e.g.~\cite[14.2.5]{menezes96handbook}) is amongst the most complicated long-number algorithms. For example, when dividing a $2k$-number number by a $k$-digit number, $k \cdot \left(k - 2\right)$ digit multiplications and $k$ digit divisions are consumed.
+
+There are, however, methods to reduce the computational complexity of modular arithmetic, including the Montgomery reduction~\cite[14.3.2]{menezes96handbook} and the Barrett reduction~\cite[14.3.3]{menezes96handbook}. Barrett reduction is used in the assignment for this lecture and is already provided in the respective template. The method is based on performing the (expensive) pre-computation
+$$
+\mu = \left\lfloor \frac{b^{2k}}{n} \right\rfloor
+$$
+which then allows to avoid digit divisions and essentially requires $\bigo{\left( k^2\right)}$ single-digit multiplications.
+
+Further optimizations are possible for reductions modulo a number of ``special form'', e.g., for a number $n = b^t - \delta$, where $\delta$ is ideally a small number. Such a modulus is e.g.~often encountered for \ac{ECC} or normal Diffie-Hellman-based protocols~\cite[14.3.4]{menezes96handbook}.
+
+\section{Exponentiation Algorithms}
+Exponentiation, i.e., computing $y = x^e \mod n$, for $x,\,e,\,n$ long numbers, is a core operation in many cryptographic schemes, including \ac{RSA} (see Def.~\ref{def:rsa_enc} and Def.~\ref{def:rsa_dec}) and the Diffie-Hellman key exchange. In similar form (as ``scalar multiplication''), it is also required for \ac{ECC}.
+
+There are many methods to efficiently implement exponentiation in software. We only focus on the most basic method, the left-to-right \ac{SAM} algorithm. Other techniques, including $k$-ary and sliding window exponentiation, allow to substantially reduce the runtime of exponentiation. However, they are beyond the scope of these lecture notes---the interested reader is referred to~\cite[14.6]{menezes96handbook}.  
+
+The key idea of the \ac{SAM} algorithm is to interleave the modular reduction and multiplications. Otherwise, if performing the exponentiation first and the reducing $\mod n$, the storage and computational requirements would be immense (take into account that multiplying two $k$-digit numbers results in a $2k$-digit product).
+
+The algorithm hence ``scans'' the binary exponent $e$ left-to-right (i.e.~starting at the \ac{MSB}), performs a squaring for each bit (irrespective of the bit being $0$or $1$) and an additional multiplication if the respective bit is set to $1$. 
+Let $e = \left(e_{t-1}\ e_{t-2}\ \ldots \ e_0\right)_2$ be the exponent in binary form. 
+Assume that $e_{t-1} = 1$, i.e. the \ac{MSB} is always set. 
+$x,\,n$ are $k$-digit numbers. The \ac{SAM} algorithm to compute $y = x^e \mod n$ is then formalized in Alg.~\ref{alg:asymmetric_crypto:ln_sam}:
+
+\begin{algorithm}
+\center
+\begin{algorithmic}
+\vspace{2mm}
+\State $y \gets x$ 
+
+\For{i = $t-2$ ... $0$}
+	\State $y \gets y^2 \mod n$
+	\If{$e_i = 1$}
+	\State $y \gets y \cdot x \mod n$
+	\EndIf
+\EndFor
+
+\vspace{2mm}
+\end{algorithmic}
+\caption{Left-to-right square-and-multiply algorithm to compute $y = x^e \mod n$}
+\label{alg:asymmetric_crypto:ln_sam}
+\end{algorithm}
+
+\paragraph{Example}
+Let us look at an example for the exponent $e = 11011_2$. We have $t = 5$. The following table shows the operation and the current state of the exponent for the \ac{SAM}:
+
+\begin{table}[htbp]
+	\centering
+		\begin{tabular}{c | c | c | c }
+			  $i$ & Current exponent & Current $y$ & Operation \\ \hline
+			  -- & $1_2$   & $x$ & \verb+LOAD+ \\
+			  3  &  $10_2$ & $x^2 = x ^{10_2}$ & \verb+SQ+ \\
+			  3  &  $11_2$ & $x^{10_2} \cdot x = x^{11_2}$ & \verb+MUL+ \\
+			  2 &  $110_2$ & $\left(x^{11_2}\right)^2 = x^{110_2}$ & \verb+SQ+ \\
+			  1 &  $1100_2$ & $\left(x^{110_2}\right)^2 = x^{1100_2}$ & \verb+SQ+ \\
+			  1 &  $1101_2$ & $x^{1100_2} \cdot x = x^{1101_2}$ & \verb+MUL+ \\
+			  0 &  $11010_2$ & $\left(x^{1101_2}\right)^2 = x^{11010_2}$ & \verb+SQ+ \\
+			  0 &  $11011_2$ & $x^{11010_2} \cdot x = x^{11011_2}$ & \verb+MUL+
+		\end{tabular}
+	\caption{Example: \ac{SAM}}
+	\label{tab:asymmetric_crypto:example_sam}
+\end{table}
+
+
+\paragraph{Complexity}
+The \verb+for+ loop is executed $t-1$ times. We hence need $t-1$ squarings and modular reductions (\verb+SQ+). If $e_i$ is set, we in addition execute a multiplication and modular reduction (\verb+MUL+). On average, assume that half of the bits of $e$ are set. Then, we need
+
+$$\frac{t-1}{2} \mbox{ MUL and } t-1 \mbox{ SQ}$$
+
+\section{Outlook: \acl{ECC}}
+\label{sec:asymmetric_crypto:ecc}
+In contrast to \ac{RSA}, where key sizes over 2048~bit are generally recommended today, \acl{ECC} reaches a similar security level with shorter keys. For example, to reach the equivalent security level to \ac{RSA}-3072, 256-bit \ac{ECC} is sufficient. This means that the required memory for storing public and private keys is reduced from 384~byte to 32~byte, i.e., by a factor of 12. Apart from that, the long-number routines become faster due to the shorter operands. In contrast, however, a single group operation (the equivalent to a multiplication $\mod n$ for \ac{RSA}) requires multiple long-number operations. 
+
+Still, overall, the other  advantages make \ac{ECC} better suited for constrained embedded devices. Optimized implementations, e.g., based on Curve25519~\cite{bernstein2006curve25519}, can achieve runtimes under 1~s for a full \ac{ECC} operation (signature, encryption, etc.) on an MSP430~\cite{hinterwalder2014full}. 
+%
+Public domain implementations of Curve25519 for common \acp{muC} are available at: \url{http://munacl.cryptojedi.org/}. 
+%
+A general overview over \ac{ECC} can e.g.~found in~\cite{Cohen:2012:HEH:2463153}, which is available online at: \url{http://cs.ucsb.edu/~koc/ccs130h/2013/EllipticHyperelliptic-CohenFrey.pdf}.
+
+%---------------------------------------------------------------------
+
+
+
+

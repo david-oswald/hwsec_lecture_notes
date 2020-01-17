@@ -1,0 +1,35 @@
+%#####################################################################
+%                           Chapter
+%#####################################################################
+
+
+%#####################################################################
+\chapter{Introduction}
+\thispagestyle{fancy}
+
+\label{chap:intro}
+%#####################################################################
+
+%#####################################################################
+\section{Hardware and Embedded Systems Security}
+%#####################################################################
+\label{sec:intro:motivation}
+
+Embedded devices have become commonplace in our world---billions of small (or today also more powerful) processors are invisibly integrated in objects of our daily life. Examples include vehicles, contactless payment and identity cards, smartphones, electronic locking systems, industrial machines, trains, traffic control, medical devices, and a countless number of other systems. The infamous term \ac{IoT} has gained significant attention in the past years, implying that these pervasive computing devices communicate and form a global network.
+
+With this trend grows the need for security of the respective devices---threats are manifold, and in contrast to many \acs{PC}-based applications, security incidents can easily have direct influence on the physical world (consider for example a vulnerability in a self-driving car). Evaluating and improving the security of such devices is the core problem of the field of ``Hardware and Embedded Systems Security''. 
+
+In this lecture, we look at both constructive (i.e. ``how to create secure embedded systems?'') and destructive aspects (``how to attack embedded systems?''). The first part deals with the efficient implementation of different cryptographic algorithms on constrained devices (Chapter~\ref{chap:symmetric_crypto} and Chapter~\ref{chap:asymmetric_crypto}). The second part covers ``implementation attacks'', a class of attacks that allows to break mathematically secure algorithms by exploiting physical characteristics of a real device.
+
+\section{Development Platform Used for this Lecture}
+For the purposes of this lecture, we will use the MSP-EXP430FR5969 launchpad\footnote{\url{http://www.ti.com/product/MSP430FR5969}} as both implementation and \ac{SCA} evaluation platform. The board features a MSP430FR5969 16\,MHz ultra-low-power \ac{muC} with 64\,kB of \ac{FRAM} for storage of both volatile data and the program code~\cite{msp_datasheet}. Acknowledgments go to Texas Instruments for providing the boards as part of their university program. 
+
+The MSP430 architecture is part of the lower end of embedded devices, with a 16-bit \ac{RISC} architecture and limited computational capabilities. However, such processors are very cost effective and feature a very low power consumption, which is why such \acp{muC} (and other similar processors, e.g., Microchip PIC or Atmel ATMega and ATXmega \acp{muC}) are used in billions of embedded systems across numerous application areas.
+
+Using such a processor for educational purposes has several advantages: first, due to the (relative) simplicity, the developer has full control over the system, e.g., can optimize an algorithm on the assembly level and estimate the precise cycle count. In addition, techniques that incur large memory overhead are automatically excluded---programs have to be developed with speed requirements and size considerations in mind. Finally, applying implementation attacks is easier compared to large processors, where an \ac{OS} schedules several tasks or where several processes execute in parallel.
+
+%---------------------------------------------------------------------
+
+
+
+

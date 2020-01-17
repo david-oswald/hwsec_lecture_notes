@@ -1,0 +1,338 @@
+%#####################################################################
+%                            Document
+%#####################################################################
+
+%#####################################################################
+%                            LaTeX starts
+%#####################################################################
+
+
+\documentclass[draft=false,           % draft modus (true,false)
+               paper=a4,              % paper size  (print space)
+               fontsize=11pt,         % font size (10pt,11pt,12pt)
+               headings=big,
+               twocolumn=false,       % text columns per page (true,false)
+               twoside,               % text side layout (oneside,twoside)
+               openright,             % start chapter (openright,openany)
+               chapterprefix,         % two lines chapters 'Chapter x\\ Name'
+               cleardoublepage=plain, % new (twoside) page (empty,plain,standard)
+               parskip=false,
+               numbers=noenddot        % configure \parindent and \parskip
+              ]{scrbook}
+
+%\documentclass[a4paper,12pt,twoside,openany,headsepline,bibliography=totocnumbered]{scrbook}
+
+%%% HAS TO BE HERE FOR TIKZ %%%
+\usepackage{etex}
+
+% *************************************************************
+
+% packages (really needed ones only)
+%% A
+\usepackage[printonlyused]{acronym}          	% abbreviations
+\usepackage{adjustbox}                       	
+\usepackage{algorithm}                       	% algorithms
+\usepackage{algpseudocode}                     % algorithms
+\usepackage{amssymb}                          % misc extra (math) symbols
+\usepackage{amsthm}
+%% B
+\usepackage[ngerman,american]{babel}          % US English terms and hyphenations
+\usepackage{booktabs}													% Nice table stuff like \toprule
+%% C
+\usepackage{color}
+\usepackage{colortbl}
+%% D
+%% E
+\usepackage{enumitem}												  % Control over lists
+\usepackage{extarrows}												% Long arrows
+%% F
+\usepackage{fancyhdr}                         % custom headers & footers
+\usepackage{float}
+\usepackage{footmisc}													% Labels in footnotes
+%\usepackage[T1]{fontenc}                      % force T1 vector font encoding
+\usepackage{framed}
+\usepackage[in,headings]{fullpage}            % 1 inch margins, header & footers, centering
+%% G
+\usepackage{graphicx}                  				% graphic stuff
+%% H
+\usepackage{here}
+\usepackage[pdftitle={David Oswald -- Hardware and Embedded Systems Security},pdfsubject={Hardware and Embedded Systems Security}, pdfauthor={David Oswald}, pdfkeywords={Keywords}, pdfdisplaydoctitle=true, linktocpage=true, bookmarksnumbered=true, colorlinks=false, linkcolor=blue, citecolor=blue, anchorcolor=blue, pdfpagelayout=TwoPageRight, bookmarksopen=true, bookmarksopenlevel=0]{hyperref}
+%% I
+\usepackage[utf8]{inputenc}                 % allow direct input of umlaute etc.
+%% J
+%% K
+%% L
+% \usepackage{l3backend} 
+\usepackage{listings}                         % sophisticated source code listings
+\usepackage{lmodern}													% better fonts
+\usepackage{longtable}                        % multi-page tables
+%% M
+\usepackage{makeidx}                          % enable indexing (cf. \makeindex)
+%\usepackage[k-loose,nohints]{minitoc}         % mini tocs per chapter
+\usepackage{multirow}													% For multiple rows in tables
+%% N
+\usepackage{nopageno}                         % disable auto page numbering
+\usepackage{nicefrac}													% smaller fraction symbol
+%% O
+%% P
+\usepackage{placeins}													% for \FloatBarrier
+\usepackage{protocol}													% for typesetting protocols
+\usepackage{pstricks}
+\usepackage{pst-all}
+%% Q
+%% R
+%% S
+\usepackage{subfig}														% For \subfloat
+%% T
+\usepackage{tabularx}													% Better tables
+\usepackage{textcomp}													% Fix pound problem
+\usepackage{tikz}                             % Drawings
+%% U
+\usepackage{upgreek}													% ``Unmathematical'' greek symbols eg. for units
+\usepackage{url}                              % URL handling (style & line breaks)
+%% V
+%% W
+%% X
+%% Y
+%% Z
+
+%%% Need all libs here
+\usetikzlibrary{shapes,arrows,calc}
+\usetikzlibrary{shapes}
+\usetikzlibrary{positioning}
+\usetikzlibrary{matrix}
+
+% Links
+\hypersetup{
+    colorlinks,
+    linkcolor={red!30!black},
+    citecolor={blue!50!black},
+    urlcolor={blue!80!black}
+}
+
+%#####################################################################
+%                        Layout customization
+%#####################################################################
+
+% spacing between headline and text
+\setlength{\headsep}{20pt}
+
+% line spacing (don't use \baselinestretch)
+%\linespread{1.1}
+
+% flexible extra vertical space between paragraphs (default +0.5 -0.25)
+%\setlength{\parskip}{1ex plus0.5ex minus0.25ex}
+
+% maximum fraction of a page for floats before creating a new page
+\renewcommand{\floatpagefraction}{0.75} % (default = 0.5)
+
+% minimum fraction of a page for text (default = 0.2)
+%\renewcommand{\textfraction}{0.2}
+
+% penalties to prevent 'Hurenkinder' and 'Schusterjungen'
+\clubpenalty = 10000
+\widowpenalty = 10000
+\displaywidowpenalty = 10000
+
+% penalty for word spacing vs. overlapping words
+\tolerance = 500
+
+% makes all text pages the same height, by adding
+% extra vertical space when necessary (book default)
+\flushbottom % \raggedbottom (no extra vertical space)
+
+% center chapter headings
+\addtokomafont{chapter}{\renewcommand*{\raggedsection}{\centering}}
+
+% Try to fix PDF graphics CMYK<->RGB bug on MAC
+%\pdfpageattr {/Group << /S /Transparency /I true /CS /DeviceRGB>>}
+
+% define some own fonts
+\newcommand{\subtitlefnt}{\fontfamily{ppl}\fontshape{sl}\fontseries{m}\fontsize{13}{16}\selectfont}
+
+% define fancy page style
+\pagestyle{fancy}
+
+% define page headings
+\fancyhead{} % clear previous
+\fancyhead[LE]{\textsf{\nouppercase{\leftmark}}}
+\fancyhead[RO]{\textsf{\nouppercase{\rightmark}}}
+\renewcommand{\headrulewidth}{0.5pt}
+
+% define page footers
+\fancyfoot{} % clear previous
+\fancyfoot[EL,OR]{\textsf{\thepage}}
+\fancyfoot[ER,OL]{}
+
+% define some custom colors
+\definecolor{itemcolor}{rgb}{0.3,0.3,0.3}
+
+% use different itemize bullets (first & second level)
+\renewcommand{\labelitemi}{\graybox}
+\renewcommand{\labelitemii}{\whitebox}
+
+% use different enumerate  (first & second level), e.g., R/roman, Arabic,
+\renewcommand{\labelenumi}{(\arabic{enumi})}
+\renewcommand{\labelenumii}{\alph{enumii})}
+
+\newtheorem{definition}{Definition}
+
+
+%#####################################################################
+%                Custom settings, commands & macros
+%#####################################################################
+\input{chapters/commands}
+
+% custom hyphenations
+\hyphenation{}
+
+% set babel default language
+\selectlanguage{american}
+
+% build index
+\makeindex
+
+%#####################################################################
+%                            Title page
+%#####################################################################
+
+% title
+\title{
+%\fontfamily{ppl}\fontshape{sc}\fontseries{m}\fontsize{16}{24}\selectfont
+Lecture Notes:\\
+Hardware and Embedded Systems Security
+%\vspace*{0.75ex}
+%\fontfamily{ppl}\fontshape{sl}\fontseries{m}\fontsize{16}{18}\selectfont
+%\vspace*{4ex}
+}
+
+% author
+\author{David Oswald}
+
+
+% date
+\date{\today}
+
+%---------------------------------------------------------------------
+%                         initialize document
+%---------------------------------------------------------------------
+\begin{document}
+  
+%%% Mark standard abbreviations as used
+\acused{DES}
+\acused{3DES}
+\acused{AES}
+\acused{RSA}
+\acused{USB}
+\acused{PC}
+\acused{SHA}
+\acused{SHA-1}
+\acused{CPU}
+\acused{VHDL}
+\acused{EEPROM}
+\acused{MOSFET}
+
+% roman page numbering until actual text starts
+\pagenumbering{roman}
+
+% build title
+\maketitle
+
+%#####################################################################
+%                        Abstract
+%#####################################################################
+%\input{chapters/abstract}
+
+%#####################################################################
+%                        Acks
+%#####################################################################
+% \input{chapters/acknowledgments}
+
+%#####################################################################
+%                           Table of Contents
+%#####################################################################
+\def\contentsname{Table of Contents}
+\tableofcontents
+
+% additional blank page
+\cleardoublepage
+\chapter*{General Remarks}
+\section*{Notation}
+Notation and symbols are (should be) consistent within one chapter. However, between chapters, the notation may change (e.g., $n$ could both refer to the block size of a block cipher and the \ac{RSA} modulus. Some symbols should be consistent throughout the document, for example $p$ for plaintext, $c$ for ciphertext, and $k$ for the key, unless explicitly re-defined for a chapter or section.
+
+Byte and bit indices are counted from zero, i.e., the \ac{LSB} in the \ac{LSByte} is byte~0, bit~0. In binary notation (e.g., $19_{10} = \left(10011\right)_2$), the \ac{LSB} is at the right.
+
+\section*{Bug Reports}
+If you find a problem, bug, or error, please let me know (include the page number and a brief description): \href{mailto:d.f.oswald@cs.bham.ac.uk}{d.f.oswald@cs.bham.ac.uk}---thanks! You can also submit a pull request on the lecture notes repo at \url{https://github.com/david-oswald/hwsec_lecture_notes}.
+
+\section*{Licensing}
+These lectures notes are under the Creative Commons ``Attribution-ShareAlike 3.0 Unported'' (\texttt{CC BY-SA 3.0}) license. See \url{https://creativecommons.org/licenses/by-sa/3.0/} for details. This means that ou are free to:
+
+\begin{description}
+ \item[Share] Copy and redistribute the material in any medium or format.
+ \item[Adapt] Remix, transform, and build upon the material for any purpose, even commercially.
+\end{description}
+
+\noindent Under the following terms:
+
+\begin{description}
+ 
+ \item[Attribution] You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
+
+ \item[ShareAlike] If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original. 
+
+\end{description}
+
+
+% from here arabic page numbering
+\pagenumbering{arabic}
+
+%#####################################################################
+% Chapter: Introduction
+%#####################################################################
+\input{chapters/intro}
+
+%#####################################################################
+% Chapter: Symm. crypto
+%#####################################################################
+\input{chapters/symmetric_crypto}
+
+%#####################################################################
+% Chapter: Asymm. crypto
+%#####################################################################
+\input{chapters/asymmetric_crypto}
+
+%#####################################################################
+% Chapter: Impl. attacks
+%#####################################################################
+\input{chapters/impl_attacks}
+
+%#####################################################################
+%                       Bibliography
+%#####################################################################
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliographystyle{alpha} % plain or alpha
+\bibliography{literature}
+
+%#####################################################################
+%                       List of Abbreviations
+%#####################################################################
+\addcontentsline{toc}{chapter}{List of Abbreviations}
+\input{chapters/acronyms}
+
+%#####################################################################
+%                          List of Figures
+%#####################################################################
+\addcontentsline{toc}{chapter}{List of Figures}
+\listoffigures
+
+%#####################################################################
+%                          List of Tables
+%#####################################################################
+\addcontentsline{toc}{chapter}{List of Tables}
+\listoftables
+
+%#####################################################################
+%                            LaTeX ends
+%#####################################################################
+\end{document}

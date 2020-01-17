@@ -1,0 +1,61 @@
+\usetikzlibrary{matrix}
+\begin{tikzpicture}
+
+\newcommand{\btf}[5][]
+{
+  % this needed to be modified somehow...
+  \draw[#1] ($(#2) + (0.15,0)$)--($(#3) - (0.16,0)$);
+  \draw[#1] ($(#4) + (0.15,0)$)--($(#5) - (0.16,0)$);
+  \draw[#1] ($(#2) + (0.15,0)$)--($(#5) - (0.16,0)$);
+}
+
+\matrix(dict)[matrix of nodes,%below=of game,
+        nodes={align=center,text width=.5cm},
+        %row 1/.style={anchor=south},
+        column 5/.style={nodes={text width=1cm}},
+        column 6/.style={nodes={text width=1cm}},
+        column 7/.style={nodes={text width=1cm}}
+    ]{
+        $x_2$ & $x_1$ & $x_0$ & $y$ & $2^0$ & $2^1$ & $2^2$\\
+	 0 & 0 & 0 &  0 & 0 & 0 & 0\\
+	 0 & 0 & 1 &  1 & 1 & 1 & 1\\
+	 0 & 1 & 0 &  0 & 0 & 0 & 0\\
+	 0 & 1 & 1 &  1 & 1 & 0 & 0\\
+	 1 & 0 & 0 &  0 & 0 & 0 & 0\\
+	 1 & 0 & 1 &  1 & 1 & 1 & 0\\
+	 1 & 1 & 0 &  1 & 1 & 1 & 1\\
+	 1 & 1 & 1 &  1 & 0 & 1 & 1\\
+    };
+    \draw(dict-1-1.south west)--(dict-1-7.south east);
+    \draw(dict-1-1.north east)--(dict-9-1.south east);
+    \draw(dict-1-2.north east)--(dict-9-2.south east);
+    \draw[double](dict-1-3.north east)--(dict-9-3.south east);
+    \draw[](dict-1-4.north east)--(dict-9-4.south east);
+    \draw[](dict-1-5.north east)--(dict-9-5.south east);
+    \draw[](dict-1-6.north east)--(dict-9-6.south east);
+    
+    % First round
+    \btf{dict-2-4}{dict-2-5}{dict-3-4}{dict-3-5};
+    \btf{dict-4-4}{dict-4-5}{dict-5-4}{dict-5-5};
+    \btf{dict-6-4}{dict-6-5}{dict-7-4}{dict-7-5};
+    \btf{dict-8-4}{dict-8-5}{dict-9-4}{dict-9-5};
+    
+    % Second round
+    \btf{dict-2-5}{dict-2-6}{dict-4-5}{dict-4-6};
+    \btf[color=blue]{dict-3-5}{dict-3-6}{dict-5-5}{dict-5-6};
+    \btf{dict-6-5}{dict-6-6}{dict-8-5}{dict-8-6};
+    \btf[color=blue]{dict-7-5}{dict-7-6}{dict-9-5}{dict-9-6};
+    
+       % Third round
+    \btf{dict-2-6}{dict-2-7}{dict-6-6}{dict-6-7};
+   \btf[color=blue]{dict-3-6}{dict-3-7}{dict-7-6}{dict-7-7};
+   \btf[color=red]{dict-4-6}{dict-4-7}{dict-8-6}{dict-8-7};
+   \btf[color=cyan]{dict-5-6}{dict-5-7}{dict-9-6}{dict-9-7};
+    
+ %   \btf{dict-4-4}{dict-4-5}{dict-5-4}{dict-5-5};
+ %   \btf{dict-2-4}{dict-2-5}{dict-3-4}{dict-3-5};
+ %   \btf{dict-2-4}{dict-2-5}{dict-3-4}{dict-3-5};
+    
+    
+    
+\end{tikzpicture}

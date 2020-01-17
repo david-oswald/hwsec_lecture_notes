@@ -1,0 +1,414 @@
+%----------------------------------------------------------------------
+% This is: protocol.sty  (sirene Version)
+% $Id: protocol.sty,v 1.1 2004/06/27 08:56:50 selhorst Exp $
+%----------------------------------------------------------------------
+% - Original Author:  Peter de Rooij, 93/09/06
+% - History: See end of file.
+% 
+% Typical usage:
+%
+% \begin{minipage}{0.9\textwidth}
+% \begin{center}
+% \begin{protocol}{2}
+%   \protocolheader{Title of this protocol}\\
+%   \participants{
+%       \doesinabox{1st party \\ some more info}}{
+%       \doesinabox{2nd party \\ some more info}}
+%   \doesA{$y := x^2$}
+%   \AtoB{y}
+%   \doesB{verify if $y=x^2$}
+%   \AfromB{\mbox{OK!}}
+%   \doesA{be happy}
+% \end{protocol}
+% \end{center}
+% \end{minipage}
+%
+%
+%----------------------------------------------------------------------
+% ARROWFILL WITH \textstyle SUPERSCRIPT.
+% use in math-mode:
+%  \sends{a^b} makes a `rightarrowfill' with $a^b$ on top.
+%  \Sends[n]{a^b} idem but spans n columns
+%  \receives{a^b}, \Receives[n]{a^b}  idem for leftarrowfill
+%  \exchange{a^b}, \Exchange[n]{a^b}  idem for lefrightarrowfill
+%
+%  \bsends (resp., \bSends) and \breceives (resp., \bReceives) produce
+%          broken-line versions of sends & receives
+%----------------------------------------------------------------------
+
+\NeedsTeXFormat{LaTeX2e}[1994/06/01]
+% This command parses the CVS Date and uses it as the package date
+\def\CvsDateToPackage Date: #1/#2/#3 #4:#5:#6 {%
+ \ProvidesPackage{protocol}[#1/#2/#3 Protocols Style (sirene version)]} 
+\catcode`\$=9\relax         % Now, "$" is ignored
+\CvsDateToPackage $Date: 2004/06/27 08:56:50 $  % Here, the CVS Date is parsed and used
+\catcode`\$=11\relax        % Now "$" is just a normal letter
+% Print the CVS Id
+\typeout{>>> Protocols Style $Id: protocol.sty,v 1.1 2004/06/27 08:56:50 selhorst Exp $.}
+\catcode`\$=3\relax         % Now "$" is the math-separator again
+\typeout{>>> --- Includes 'boxes.sty'.}
+
+% shorthand for lowering the arrows
+\def\@r@al{\raise\arrowlower}
+
+% rulefill made up of lowered $-$'s
+\def\@lrulefill{\cleaders\hbox{$\mkern-2mu\@r@al\hbox{$-$}\mkern-2mu$}\hfill}
+
+% broken rulefill made up of lowered $-~$'s
+\def\@blrulefill{\cleaders\hbox{$\mkern-2mu\@r@al\hbox{$-~$}\mkern-2mu$}\hfill}
+
+% end of rule (overlaps with arrowheads):
+\def\@lendofrule{\@r@al\hbox{$-$}\mkern-4mu}
+\def\@rendofrule{\mkern-4mu\@r@al\hbox{$-$}}
+
+% ends of arrows:
+\def\@rafill{\mkern-6mu\@lrulefill\@rendofrule\@r@al\llap{$\rightarrow$}}
+\def\@lafill{\m@th\@r@al\rlap{$\leftarrow$}\@lendofrule\@lrulefill\mkern-6mu}
+\def\@rdfill{\mkern-6mu\@lrulefill\@rendofrule}
+\def\@ldfill{\m@th\@lendofrule\@lrulefill\mkern-6mu}
+
+% ends of broken arrows:
+\def\@brafill{\mkern-6mu\@blrulefill\@rendofrule\@r@al\llap{$\rightarrow$}}
+\def\@blafill{\m@th\@r@al\rlap{$\leftarrow$}\@lendofrule\@blrulefill\mkern-6mu}
+\def\@brdfill{\mkern-6mu\@blrulefill\@rendofrule}
+\def\@bldfill{\m@th\@lendofrule\@blrulefill\mkern-6mu}
+
+\newdimen\minarrowwidth   \minarrowwidth=0pt
+\newdimen\arrowwidth
+\newdimen\arrowlower      \arrowlower=-4pt
+
+\def\@showmessage#1{\setbox\@tempboxa\hbox{$#1$}
+  \ifdim\wd\@tempboxa<\minarrowwidth
+    \arrowwidth\minarrowwidth
+  \else
+    \arrowwidth\wd\@tempboxa
+  \fi
+  \hbox{$\m@th\displaystyle\mathop{\hbox to \arrowwidth
+    {$\m@th\@lrulefill$}}\limits^{\hfill\box\@tempboxa\hfill}$}}
+
+% for broken arrows
+\def\@bshowmessage#1{\setbox\@tempboxa\hbox{$#1$}
+  \ifdim\wd\@tempboxa<\minarrowwidth
+    \arrowwidth\minarrowwidth
+  \else
+    \arrowwidth\wd\@tempboxa
+  \fi
+  \hbox{$\m@th\displaystyle\mathop{\hbox to \arrowwidth
+    {$\m@th\@blrulefill$}}\limits^{\hfill\box\@tempboxa\hfill}$}}
+
+\def\sends{\@sends}
+\def\Sends[#1]#2{\multispan{#1}$\@sends{#2}$}
+\def\@sends#1{\@ldfill\@showmessage{#1}\@rafill}
+
+% broken send
+\def\bsends{\@bsends}
+\def\bSends[#1]#2{\multispan{#1}$\@bsends{#2}$}
+\def\@bsends#1{\@bldfill\@bshowmessage{#1}\@brafill}
+
+\def\receives{\@receives}
+\def\Receives[#1]#2{\multispan{#1}$\@receives{#2}$}
+\def\@receives#1{\@lafill\@showmessage{#1}\@rdfill}
+
+% broken receive
+\def\breceives{\@breceives}
+\def\bReceives[#1]#2{\multispan{#1}$\@breceives{#2}$}
+\def\@breceives#1{\@blafill\@bshowmessage{#1}\@brdfill}
+
+\def\exchange{\@exchange}
+\def\Exchange[#1]#2{\multispan{#1}$\@exchange{#2}$}
+\def\@exchange#1{\@lafill\@showmessage{#1}\@rafill}
+
+% broken exchange
+\def\bexchange{\@bexchange}
+\def\bExchange[#1]#2{\multispan{#1}$\@bexchange{#2}$}
+\def\@bexchange#1{\@blafill\@bshowmessage{#1}\@brafill}
+
+%----------------------------------------------------------------------
+% NARROWING COLUMNS
+% \narrowcol{ARG} produces ARG centered in an \hbox that is 2em too
+% narrow for its contents. ARG is still in math-mode!
+% \Narrowcol does the same with the double amount of shrinking.
+% \phantomcol does the same with a column of zero width
+% BUG: cannot be used for \send and relatives!
+
+\def\narrowcol#1{\hbox{\hskip-1em$#1$\hskip-1em}}
+\def\Narrowcol#1{\hbox{\hskip-2em$#1$\hskip-2em}}
+\def\phantomcol#1{\hbox to 0pt{\hss$#1$\hss}}
+
+%----------------------------------------------------------------------
+% HANDLING OF SUB-PROTOCOL IN ONE PROTOCOL ENVIRONMENT
+% If you have several subprotocols and you would like to show them in
+% one figure you don't won't several protocol environments as there
+% would be no  cross-alignment.
+% =>
+% just issue \subprotocolcaption for captions of sub-protocols and
+% \newparticipants if the participants change
+% if you don't have any action and only short flows this might result
+% in badly centered flows. You can remedy that by something along the
+% lines of:  \receives{\hspace*{7em}\Alf^{N_{n+1}}\hspace*{7em}}
+\newcommand{\subprotocolcaption}[1]{%
+    \\[\baselineskip]
+    \multicolumn{3}{c}{\parbox{0.8\columnwidth}{\centering{#1}}}%
+    \\[2\baselineskip]}
+\def\newparticipants{% initialize:
+  \noalign{\vspace{1em}}%
+  % and call standard participants
+  \participants}
+
+
+%----------------------------------------------------------------------
+% A PROTOCOL ENVIRONMENT.
+% args: #1: number of parties
+% essentially, an array with # columns depending on the argument.
+% furthermore, a macro \participants with the correct number of args
+% is defined. \participants{A}{B}[{C}...] puts A resp. B (and C...) centered
+% over columns 1 resp. 3 (resp. 5...)
+% \protocolheader{#1} puts #1 in an \hbox centered over the entire
+% array.
+%
+% use:
+%  \begin{protocol}{2}
+%    \protocolheader{HEADER}\\
+%    \participants{Alice}{Bob}\\
+%    y := x^2\\
+%       & \sends{y}\\
+%       &       & \mbox{verify if $y=x^2$}\\
+%       & \receives{\mbox{OK!}}\\
+%    \mbox{be happy}
+%  \end{protocol}
+%  yields:
+%                 HEADER
+%
+%      Alice                 Bob
+%
+%       y=x^2
+%               y
+%            ------>
+%                     verify if $y=x^2$
+%              OK!
+%            <------
+%    be happy
+%
+\newcount\@ncols    \@ncols=3
+\newcount\@nccols   \@nccols=1
+\newcount\@nparties \@nparties=2
+\newcount\@npartic
+
+\def\protocolheader#1{\multicolumn{\the\@ncols}{c}{\hbox{#1}}\\}
+\def\participants{% initialize:
+  \noalign{\global\@npartic\@nparties\gdef\@more{}}
+  % and do the real stuff:
+  \@participants}
+\def\@participants#1{% print next participant:
+  \@more\multicolumn{1}{c}{\hbox{#1}}
+  % next time, first put in &&:
+  \gdef\@more{&&}
+  \global\advance\@npartic by \m@ne
+  % if there's more to do:
+  \ifnum\@npartic>0 \let\next\@participants
+  \else\let\next\\\fi\next
+}
+
+\newenvironment{protocol}[1]{% arg: # of parties
+  \relax\ifnum #1 < 2
+    \typeout{Only n-party protocols for n>1 implemented!}
+    \typeout{I'll assume n=2.}
+    \@nparties=2
+  \else
+    \@nparties=#1
+  \fi
+  % # of cols = 2 * (# of parties) - 1
+  \@ncols = \@nparties
+  \multiply \@ncols by 2
+  \advance \@ncols by -1
+  % # of centered cols = 2 * (# of parties) - 3
+  \@nccols = \@ncols
+  \advance \@nccols by -2
+  % arrowwidth based on # of columns:
+  \minarrowwidth = .5\textwidth
+  \divide\minarrowwidth by \@ncols
+  % lower all arrows halfway down to baseline:
+  \setbox\@tempboxa\hbox{$\leftarrow$}
+  \arrowlower-.5\ht\@tempboxa
+  $$\begin{array}{r*{\@nccols}{c}l}
+}{\end{array}$$}
+
+\newenvironment{protocolm}[1]{% arg: # of parties
+  \relax\ifnum #1 < 2
+    \typeout{Only n-party protocols for n>1 implemented!}
+    \typeout{I'll assume n=2.}
+    \@nparties=2
+  \else
+    \@nparties=#1
+  \fi
+  % # of cols = 2 * (# of parties) - 1
+  \@ncols = \@nparties
+  \multiply \@ncols by 2
+  \advance \@ncols by -1
+  % # of centered cols = 2 * (# of parties) - 3
+  \@nccols = \@ncols
+  \advance \@nccols by -2
+  % arrowwidth based on # of columns:
+  \minarrowwidth = .5\textwidth
+  \divide\minarrowwidth by \@ncols
+  % lower all arrows halfway down to baseline:
+  \setbox\@tempboxa\hbox{$\leftarrow$}
+  \arrowlower-.5\ht\@tempboxa
+  $$\begin{array}{lr*{\@nccols}{c}l}
+}{\end{array}$$}
+
+
+% ----------------------------------------------------------------
+% Start of boxes.sty; no changes made to original file
+% ----------------------------------------------------------------
+% First version: Matthias Schunter
+% Modified by Peter de Rooij: long lines in the boxes now
+% not only wrap, but also indent.
+% Usages:
+% \begin{ocolbox} ... \end{ocolbox}
+
+
+\newcommand{\ind}{\hspace*{1em}}
+\newcommand{\noind}{\hspace*{-1em}}
+
+\newdimen\figurewidth
+\figurewidth\textwidth
+
+\newdimen\ocolboxwidth
+\newenvironment{ocolbox}%
+{%
+  \ocolboxwidth=0.9\figurewidth%
+  \divide\ocolboxwidth by \@ncols%
+  \colboxwidth=\ocolboxwidth%
+  \advance\colboxwidth by -1em%
+  \begin{minipage}[t]{\ocolboxwidth}%
+    \rightskip=0pt plus 1fil
+    \parskip=0pt
+    \everypar{\hangindent 1em \hangafter=1}
+    \let\\\par
+}%
+{\end{minipage}}
+
+\newdimen\colboxwidth
+\newenvironment{colbox}%
+{%
+  \advance\colboxwidth by -1em%
+  \ind\begin{minipage}[t]{\colboxwidth}%
+    \setlength{\rightskip}{0pt plus 1fil}%
+    \everypar{\hangindent 1em \hangafter=1}%
+    \let\\\par
+}%
+{\end{minipage}\\}
+
+\newdimen\framewidth
+\def\framepage#1{%
+  \framewidth=\textwidth
+  \advance\framewidth by -7pt
+  \advance\framewidth by -\rightmargin
+  \advance\framewidth by -\leftmargin
+  \fbox{\begin{minipage}{\framewidth}#1\end{minipage}}%
+}
+
+% ----------------------------------------------------------------
+% End of boxes.sty; no changes made to original file
+% ----------------------------------------------------------------
+
+% ----------------------------------------------------------------
+% Some macros to make writing protocols a bit easier.
+% Michael Waidner (1999/02/13)
+% ----------------------------------------------------------------
+
+% DRAW A HORIZONTAL LINE IN THE MIDDLE OF A PROTOCOL. 
+\newcommand{\protocolline}{\protocolheader{\rule{0.9\textwidth}{0.1mm}}}
+
+% SPECIFY A PARTY'S PROCESSING STEPS. TEXT MODE. ALLOWS LINE
+% BREAKS.
+\newcommand{\doesA}[1]{\doesinabox{#1} \\}
+\newcommand{\doesB}[1]{& & \doesinabox{#1} \\}
+\newcommand{\doesC}[1]{& & & & \doesinabox{#1} \\}
+\newcommand{\doesinabox}[1]{%
+        \begin{ocolbox}
+        \begin{center}
+        #1
+        \end{center}
+        \end{ocolbox}}
+
+% SPECIFY WHAT A PARTY SENDS TO ANOTHER PARTY. MATH MODE. NO
+% LINE BREAKS. SOLID AND BROKEN ARROWSu.
+%
+% X<op>Y{<MSG>}         Communication of <MSG> between X and 
+%                       Y, with (X,Y) from (A,B), (A,C), (B,C).
+%                       <op> is any of {to,bto,from,bfrom,exchange,bexchange}. 
+%                       'to' and from' generate arrows from X to Y and from Y
+%                       to X, respectively. 'bto' and 'bfrom' do the
+%                       same, but with broken arrows. 'exchange' and
+%                       'bexchange' is the  analogous for lines with
+%                       arrowheads on both sides
+% A<op>B<op>C{<MSG1>}{<MSG2>}
+%                       As with X<op>Y, but now between three
+%                       parties. The arrows are in the same row.
+\newcommand{\AtoB}[1]{& \sends{#1} \\}
+\newcommand{\AfromB}[1]{& \receives{#1} \\}
+\newcommand{\AexchangeB}[1]{& \exchange{#1} \\}
+\newcommand{\AtoC}[1]{& \Sends[3]{#1} \\}
+\newcommand{\AfromC}[1]{& \Receives[3]{#1} \\}
+\newcommand{\AexchangeC}[1]{& \Exchange[3]{#1} \\}
+\newcommand{\BtoC}[1]{& & & \sends{#1} \\}
+\newcommand{\BfromC}[1]{& & & \receives{#1} \\}
+\newcommand{\BexchangeC}[1]{& & & \exchange{#1} \\}
+\newcommand{\AtoBtoC}[2]{& \sends{#1} & &  \sends{#2}\\}
+\newcommand{\AtoBfromC}[2]{& \sends{#1} & & \receives{#2}\\}
+\newcommand{\AfromBtoC}[2]{& \receives{#1} & & \sends{#2}\\}
+\newcommand{\AfromBfromC}[2]{& \receives{#1} & & \receives{#2}\\}
+\newcommand{\AbtoB}[1]{& \bsends{#1} \\}
+\newcommand{\AbfromB}[1]{& \breceives{#1} \\}
+\newcommand{\AbexchangeB}[1]{& \bexchange{#1} \\}
+\newcommand{\AbtoC}[1]{& \bSends[3]{#1} \\}
+\newcommand{\AbfromC}[1]{& \bReceives[3]{#1} \\}
+\newcommand{\AbexchangeC}[1]{& \bExchange[3]{#1} \\}
+\newcommand{\BbtoC}[1]{& & & \bsends{#1} \\}
+\newcommand{\BbfromC}[1]{& & & \breceives{#1} \\}
+\newcommand{\BbexchangeC}[1]{& & & \bexchange{#1} \\}
+\newcommand{\AbtoBbtoC}[2]{& \bsends{#1} & &  \bsends{#2}\\}
+\newcommand{\AbtoBbfromC}[2]{& \bsends{#1} & & \breceives{#2}\\}
+\newcommand{\AbfromBbtoC}[2]{& \breceives{#1} & & \bsends{#2}\\}
+\newcommand{\AbfromBbfromC}[2]{& \breceives{#1} & & \breceives{#2}\\}
+\newcommand{\AbtoBtoC}[2]{& \bsends{#1} & &  \sends{#2}\\}
+\newcommand{\AbtoBfromC}[2]{& \bsends{#1} & & \receives{#2}\\}
+\newcommand{\AbfromBtoC}[2]{& \breceives{#1} & & \sends{#2}\\}
+\newcommand{\AbfromBfromC}[2]{& \breceives{#1} & & \receives{#2}\\}
+\newcommand{\AtoBbtoC}[2]{& \sends{#1} & &  \bsends{#2}\\}
+\newcommand{\AtoBbfromC}[2]{& \sends{#1} & & \breceives{#2}\\}
+\newcommand{\AfromBbtoC}[2]{& \receives{#1} & & \bsends{#2}\\}
+\newcommand{\AfromBbfromC}[2]{& \receives{#1} & & \breceives{#2}\\}
+
+\endinput
+% $Log: protocol.sty,v $
+% Revision 1.1  2004/06/27 08:56:50  selhorst
+% *** empty log message ***
+%
+% Revision 2.1  2000/06/27 13:39:37  lina
+% * Version upgrade to 2.1 (MSc)
+%
+% Revision 1.2  2000/03/18 00:43:37  lina
+% some small additional macros <steiner@acm.org
+%
+% Revision 1.1  2000/01/24 16:48:41  lina
+% split sirene.sty and moved to separate directory <steiner@acm.org>
+%
+% Revision 1.4  1999/06/15 12:39:06  lina
+% Minor changes (MSc)
+%
+% Revision 1.3  1999/06/15 12:33:56  lina
+% Added cvs-support (MSc)
+%
+% Pre-CVS History:
+% - Modified by Juan Garay to support broken arrows
+% - Modified by Mihir Bellare to add a new macro protocolm which
+%    has an extra left hand side column for flow names. July 7, 1995.
+% - Modified by Michael Waidner
+%    - included old boxes.sty as it is needed for most protocols 
+%      anyway
+%    - added several macros for easier writing of protocols with 2 or
+%      3 parties -- see end of file
+% 

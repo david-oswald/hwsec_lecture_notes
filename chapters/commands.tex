@@ -1,0 +1,68 @@
+% chapter introduction texts
+\newcommand{\chapterintro}[1]{\begin{quote}\emph{\noindent #1}\end{quote}\medskip}
+
+% customized paragraphs
+\newcommand{\boldpar}[1]{\smallskip\noindent\textbf{#1}}
+\newcommand{\italicpar}[1]{\smallskip\noindent\emph{#1}}
+
+% command for in text comments
+\newcommand{\comout}[1]{}
+
+% customized 'mandatory' and 'optional' symbols (e.g., used in tables)
+\newcommand{\mnd}{$\blacksquare$}
+\newcommand{\opt}{$\square$}
+
+% define some custom symbols
+\newcommand{\graybox}{{\scriptsize\textcolor{itemcolor}{$\blacksquare$}}}
+\newcommand{\halfbox}{{\normalsize\textcolor{itemcolor}{$\blacklozenge$}}}
+\newcommand{\whitebox}{{\scriptsize\textcolor{itemcolor}{$\square$}}}
+
+%% Altera
+\newcommand{\eg}{e.g., }
+\newcommand{\ie}{i.e., }
+\newcommand{\etal}{et al. }
+\newcommand{\etc}{etc.~}
+\newcommand{\Sbox}{S-box}
+\newcommand{\Fig}{Fig.}
+\newcommand{\sxii}{Stratix~II}
+\newcommand{\quar}{Quartus~II}
+\newcommand{\todo}[1]{\textcolor{red}{\textsf{TODO: #1}}}
+
+%% DESFire
+\newcommand{\Ohm}{\ensuremath{\Upomega}}
+\newcommand{\Reals}{\mathbb{R}}
+\newcommand{\bigo}{\mathcal{O}}
+\newcommand{\pbigo}[1]{\mathcal{O}\left(#1\right)}
+\newcommand{\binfield}[1]{\mathbb{F}_2^{#1}}
+\newcommand{\timefreq}{\circ\kern-0.4em-\kern-0.4em\bullet}
+\newcommand{\degree}{\ensuremath{^\circ}}
+\newcommand{\bitvec}[1]{\ensuremath{\vec{#1}}}
+\newcommand{\bitget}[2]{\ensuremath{ \vec{#2}^{\left(#1\right) }}}
+\newcommand{\dft}[1]{\ensuremath{\textrm{DFT}\left\{{#1}\right\}}}
+\newcommand{\argmin}[1]{\underset{#1}{\operatorname{argmin}}}
+
+\newcommand\circletter[1]{\ensuremath{\mathbin{\settowidth{\dimen7}{\mbox{$ \bigcirc$}} \makebox[0pt][l]{$\bigcirc$}\makebox[\dimen7]{\small #1}}}}
+\newcommand\circletterSmall[1]{\ensuremath{\mathbin{\settowidth{\dimen7}{\mbox{$ \bigcirc$}} \makebox[0pt][l]{$\bigcirc$}\makebox[\dimen7]{\footnotesize #1}}}}
+
+\newcommand{\kDUT}{\ensuremath k^{\text{dut}}}
+\newcommand{\setTimes}{\ensuremath{\left\{0,\,\ldots,\,T-1\right\}}}
+\newcommand{\setTraces}{\ensuremath{\left\{0,\,\ldots,\,N-1\right\}}}
+\newcommand{\setCands}{\ensuremath{\mathcal{K}_{cand}}}
+\newcommand{\setOptiCands}{\ensuremath{\mathcal{K}_{optim}}}
+\newcommand{\setKeys}{\ensuremath{\mathcal{K}}}
+\newcommand{\setSumFir}{\ensuremath{\mathcal{S}}}
+\DeclareMathOperator{\argmax}{arg\,max}
+
+\newcommand{\XperY}[2]{$\nicefrac{\mbox{\footnotesize #1}}{\mbox{\footnotesize #2}}$}
+
+\DeclareTextFontCommand{\hyphtt}{\ttfamily\hyphenchar\font=45\relax}
+
+\newcommand{\FIFPGA}{\ac{GIAnT}}
+
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\Obs}{\mathcal{O}}
+\newcommand{\Sset}{\mathcal{S}} 
+\newcommand{\lo}[1]{{\textsuperscript{\smash{(#1)}}}}
+
+\newcommand{\RtoT}{R $\rightarrow$ T}
+\newcommand{\TtoR}{T $\rightarrow$ R}

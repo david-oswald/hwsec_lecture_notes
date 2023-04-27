@@ -361,13 +361,13 @@ for(uint8_t round = 1; round <= 31; round++)
 
 \paragraph{Key Addition Layer}
 Since both round key and state are in the ``expanded'' form, we can simply XOR them byte-wise, whereas each XOR between two bytes of course only takes care of one bit in the state. The \verb+C+ pseudocode would be:
+
 \begin{lstlisting}
 for(uint8_t i = 0; i < 64; i++)
 {
-   state[i] = state[i] ^ roundkey[i];
+   state[i] = state[i] ^ roundkey_exp[i];
 }
 \end{lstlisting}
-
 
 \paragraph{Permutation Layer}
 The bitwise permutation of PRESENT now becomes a byte-wise permutation (due to the wasteful way of storing the state bits). For example, for the first few bits of the PRESENT permutation, this would result in (assuming the permutation is not done in-place):
@@ -414,7 +414,29 @@ There are no further modifications needed to the above implementations of the bl
 		\label{fig:symmetric_crypto:bitslicing}
 \end{figure} 
 
-Note that storing each entry of $s'$ as one byte is a choice made here for illustrative purposes. Usually, one would select the register size of a processor (i.e., 16~bit for the MSP430, 64~bit for a modern \ac{CPU}) to be able to most efficiently make use of the processor's hardware. Of course, this implies that even more cipher instances are computed in parallel (16 for the example of the MSP430, 64 for the \ac{PC} \ac{CPU}).
+Note that storing each entry of $s'$ as one byte is a choice made here for illustrative purposes. Usually, one would select the register size of a processor (i.e., 16~bit for the MSP430, 32~bit for an embedded ARM core such as in the RP2040, 64~bit for a modern \ac{CPU}) to be able to most efficiently make use of the processor's hardware. Of course, this implies that even more cipher instances are computed in parallel (16 for the example of the MSP430, 32 for the RP2040, 64 for a \ac{PC} \ac{CPU}).
+
+\emph{Note:} One actually does not have to explicitly transform the round keys into bitsliced form. Instead, if the same key (and hence the same round keys) are used for all bitsliced blocks, we can make use of the fact that each element (bit) \verb+i+ in the bitsliced \verb+roundkey_exp[i]+ can only either be all 0 (if bit \verb+i+ of the round key is 0) or all 1 (if bit \verb+i+ of the round key is 0). 
+%
+Hence, the key addition can be rewritten as (pseudocode):
+\begin{lstlisting}
+for(uint8_t i = 0; i < 64; i++)
+{
+   if(bit i of roundkey == 1) {
+      state[i] = state[i] ^ 0xFFFF...FF;
+   }
+}
+\end{lstlisting}
+
+However, this way causes the runtime of the implementation to be key-dependent, which is generally undesirable. Using the fact that -1 = \verb+0xFFFF...FF+ and that -0 = \verb+0x0000...00+, we can however rewrite this as:
+\begin{lstlisting}
+for(uint8_t i = 0; i < 64; i++)
+{
+   // Assume: x is either 1 or 0
+   b = get bit i of roundkey;
+   state[i] = state[i] ^ -b;
+}
+\end{lstlisting}
 
 \paragraph{Time and Memory Complexity}
 For bit-oriented ciphers like PRESENT or \ac{DES}, bitslicing usually gives a significant performance increase due to the amount of operations saved for the permutations. The key addition layer is similar in performance for normal and bitsliced implementations, while the \ac{SBOX} layer is usually more costly when implemented in bitsliced form. The overhead of the \ac{SBOX} layer depends on the number of required Boolean operations to implement the \ac{SBOX}---hence, finding a representation with as little Boolean operations as possible is crucial for bitsliced implementations with best performance.
@@ -422,7 +444,7 @@ For bit-oriented ciphers like PRESENT or \ac{DES}, bitslicing usually gives a si
 Besides, the operations to bring the input states into bitsliced form add computational complexity. Hence, it is normally desirable to stay in bitsliced form---and not to ``switch'' between the forms, e.g., to implement an \ac{SBOX} as a \ac{LUT}, converting the input to normal representation and back to bitsliced form afterwards. 
 %
 In terms of memory, bitslicing generates an overhead since multiple cipher states are stored at the same time. Moreover, the computation of the \ac{SBOX} usually requires (some) temporary registers to buffer the input bits. The code size may increase as well, especially if the \ac{SBOX} requires many Boolean operations.
-Overall, bitslicing is highly useful in scenarios where a large amount of data has to be encrypted with a bit-oriented cipher. In contrast, for byte-oriented ciphers like the \ac{AES} (with larger \ac{SBOX}), a table-based implementation will likely give better performance than bitslicing.
+Overall, bitslicing is highly useful in scenarios where a large amount of data has to be encrypted with a bit-oriented cipher. In contrast, for byte-oriented ciphers like the \ac{AES} (with larger \ac{SBOX}), a table-based implementation will likely give better performance than bitslicing, though bitslicing can offer competitive performance and other advantages such as constant execution time (see \Cref{sec:impl_attacks:sca} for why this is often needed)~\cite{Schwabe17}.
 
 \subsection{The \acl{ANF}}
 \label{chap:symmetric_crypto:anf}
